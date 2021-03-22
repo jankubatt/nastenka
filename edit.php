@@ -1,3 +1,21 @@
+<?php
+    include('config.php');
+    session_start();
+
+    if(isset($_POST['removeId'])) {
+        header('Location: index.php');
+        $removeId = $_POST['removeId'];
+
+        $sql = "DELETE FROM info WHERE id = '$removeId'";
+        $conn->query($sql);
+    }
+    else {
+        if(isset($_POST['editId'])) {
+            $_SESSION['editId'] = $_POST['editId'];
+        }
+    }
+?>
+
 <!DOCTYPE html>
 <html lang="cs">
   <head>
@@ -13,7 +31,7 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href="assets/style.css" />
-    <title>Přidat úkol</title>
+    <title>Upravit úkol</title>
   </head>
   
     <body>
@@ -22,8 +40,8 @@
       </nav>
 
       <div class="container text-center mt-5">
-        <h1>Přidat úkol</h1>
-        <form method="POST" action="pridat.php">
+        <h1>Upravit úkol</h1>
+        <form method="POST">
           <div class="row">
             <div class="col">
               <label for="zadani">Datum zadání</label>
@@ -74,15 +92,11 @@
           </div>
         </div>
 
-          <input type="submit" class="btn btn-primary float-right" name="submit" />
+          <input type="submit" class="btn btn-primary float-right" name="submit" value="Upravit">
         </form>
       </div>
         
-      <script
-        src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"
-      ></script>
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
       <script
         src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
         integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
@@ -93,6 +107,77 @@
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"
       ></script>
+
+      <script>
+          $.ajax({
+            method: "POST",
+            url: "getEditData.php",
+            data: { id: <?php echo $_SESSION['editId']; ?> }
+            })
+            .done(function( msg ) {
+                msg = JSON.parse(msg);
+                console.log(msg);
+                $("[name='datum_zad']").val(msg.datum_zad);
+                $("[name='datum_ode']").val(msg.datum_ode);
+                $("[name='text_zad']").val(msg.text_zad);
+                $("[name='predmet']").val(msg.predmet);
+            });
+        </script>
     </body>
-  
 </html>
+
+<?php
+    if(isset($_POST['submit']))
+    {
+        $editId = $_SESSION['editId'];
+        $datum_zad = $_POST["datum_zad"];
+        $text_zad = xssochrana($_POST["text_zad"]);
+        $datum_ode = $_POST["datum_ode"];
+        $predmet = $_POST["predmet"];
+
+        if(!isset($_POST['skupina'])) {
+            $skupina = "";
+        }
+        else {
+            $skupina = $_POST['skupina'];
+        }
+
+        $sql = "SELECT datum_zad, text_zad, datum_ode, predmet, id, skupina FROM info WHERE id = '$editId'";
+        $result = $conn->query($sql);
+
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                if($datum_zad == "") {
+                    $datum_zad = $row['datum_zad'];
+                }
+                if($text_zad == "") {
+                    $text_zad = $row['text_zad'];
+                }
+                if($datum_ode == "") {
+                    $datum_ode = $row['datum_ode'];
+                }
+                if($predmet == "") {
+                    $predmet = $row['predmet'];
+                }
+                if($skupina == "") {
+                    $skupina = $row['skupina'];
+                }
+            }
+        }
+
+        $sql = "UPDATE info SET datum_zad='$datum_zad',text_zad='$text_zad',datum_ode='$datum_ode',predmet='$predmet',skupina='$skupina' WHERE id = '$editId'";
+        $conn->query($sql);
+    ?>
+        <script type="text/javascript"> 
+            window.location.href= './index.php';
+        </script>
+    <?php
+    } 
+
+    function xssochrana($data) {
+        $data = trim($data);
+        $data = stripslashes($data);
+        $data = htmlspecialchars($data);
+        return $data;
+    }
+?>
